@@ -9,21 +9,21 @@ class ProductController extends Controller
 {
     private $jsonFile;
 
-    // Constructor to set file path
     public function __construct()
     {
         $this->jsonFile = storage_path('app/products.json');
-        // Make sure file exists
-        if (!file_exists($this->jsonFile)) {
-            file_put_contents($this->jsonFile, json_encode([]));
+
+        if (!Storage::exists('products.json')) {
+            Storage::put('products.json', json_encode([]));
         }
     }
 
     // Get all products
     public function index()
     {
-        $data = json_decode(file_get_contents($this->jsonFile), true);
-        // Sort by date descending
+        $data = json_decode(Storage::get('products.json'), true);
+        if (!$data) $data = [];
+
         $sorted = [];
         for ($i = 0; $i < count($data); $i++) {
             $sorted[] = $data[$i];
@@ -41,25 +41,30 @@ class ProductController extends Controller
     }
 
     // Save new product
-    public function store(Request $request)
+    public function store(Request $req)
     {
-        $products = json_decode(file_get_contents($this->jsonFile), true);
+        // Load existing products
+        $products = json_decode(Storage::get('products.json'), true);
+        if (!$products) $products = []; 
+        // Create new product
         $newProduct = [
-            'id' => uniqid(), // Unique ID for each product
-            'product_name' => $request->input('product_name'),
-            'quantity' => (int)$request->input('quantity'),
-            'price' => (float)$request->input('price'),
+            'id' => uniqid(),
+            'product_name' => $req->input('product_name'),
+            'quantity' => (int)$req->input('quantity'),
+            'price' => (float)$req->input('price'),
             'submitted_at' => date('Y-m-d H:i:s')
         ];
-        array_push($products, $newProduct);
-        file_put_contents($this->jsonFile, json_encode($products));
+        $products[] = $newProduct;
+
+        Storage::put('products.json', json_encode($products, JSON_PRETTY_PRINT));
         return ['status' => 'ok'];
     }
 
     // Update existing product
     public function update(Request $req, $id)
     {
-        $products = json_decode(file_get_contents($this->jsonFile), true);
+        $products = json_decode(Storage::get('products.json'), true);
+        if (!$products) $products = [];
         for ($i = 0; $i < count($products); $i++) {
             if ($products[$i]['id'] == $id) {
                 $products[$i]['product_name'] = $req->input('product_name');
@@ -68,7 +73,7 @@ class ProductController extends Controller
                 break;
             }
         }
-        file_put_contents($this->jsonFile, json_encode($products));
+        Storage::put('products.json', json_encode($products, JSON_PRETTY_PRINT));
         return ['status' => 'ok'];
     }
 }

@@ -116,7 +116,10 @@ function loadProducts() {
                 '</tr>';
         }
         $('#productsBody').html(tableBody);
-        $('#grandTotal').text(total.toFixed(2));
+        $('#grandTotal').text(grandTotal.toFixed(2));
+        console.log('Total calculated: ' + grandTotal); // Debug
+    }).fail(function() {
+        console.log('Error loading products');
     });
 }
 
@@ -125,10 +128,15 @@ loadProducts();
 // Handle form submission
 $('#addProductForm').on('submit', function(e) {
     e.preventDefault();
-    console.log('Submitting form...');
-    $.post('/api/products', $(this).serialize(), function() {
-        $('#addProductForm')[0].reset();
-        loadProducts();
+    console.log('Adding product...'); // Debug
+    let formData = $(this).serialize();
+    $.post('/api/products', formData, function(response) {
+        if (response.status === 'ok') {
+            $('#addProductForm')[0].reset();
+            loadProducts();
+        }
+    }).fail(function() {
+        console.log('Failed to add product');
     });
 });
 
@@ -145,13 +153,19 @@ $(document).on('click', '.editProd', function() {
 $('#updateForm').on('submit', function(e) {
     e.preventDefault();
     let id = $('#editId').val();
+    console.log('Updating product ID: ' + id); // Debug
     $.ajax({
         url: '/api/products/' + id,
         type: 'PUT',
         data: $(this).serialize(),
-        success: function() {
-            $('#editProductModal').modal('hide');
-            loadProducts();
+        success: function(response) {
+            if (response.status === 'ok') {
+                $('#editProductModal').modal('hide');
+                loadProducts();
+            }
+        },
+        error: function() {
+            console.log('Failed to update product');
         }
     });
 });
